@@ -13,35 +13,59 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal fun IsolateHolderService.startLocatorService(context: Context) {
 
-    val serviceStarted = AtomicBoolean(PreferencesManager.isServiceRunning(context))
-    // start synchronized block to prevent multiple service instant
-    synchronized(serviceStarted) {
-        this.context = context
-        if (IsolateHolderService.backgroundEngine == null) {
+    var serviceStarted: AtomicBoolean? = null
+    var callbackHandle: Long? = null
+    var callbackInfo: FlutterCallbackInformation? = null
+    var args: DartExecutor.DartCallback? = null
 
-            val callbackHandle = context.getSharedPreferences(
-                    Keys.SHARED_PREFERENCES_KEY,
-                    Context.MODE_PRIVATE)
-                    .getLong(Keys.CALLBACK_DISPATCHER_HANDLE_KEY, 0)
-            val callbackInfo = FlutterCallbackInformation.lookupCallbackInformation(callbackHandle)
+    try {
+        serviceStarted = AtomicBoolean(PreferencesManager.isServiceRunning(context))
+        // start synchronized block to prevent multiple service instant
+        synchronized(serviceStarted) {
+            this.context = context
+            if (IsolateHolderService.backgroundEngine == null) {
 
-            // We need flutter engine to handle callback, so if it is not available we have to create a
-            // Flutter engine without any view
-            IsolateHolderService.backgroundEngine = FlutterEngine(context)
+                // We need flutter engine to handle callback, so if it is not available we have to create a
+                // Flutter engine without any view
+                IsolateHolderService.backgroundEngine = FlutterEngine(context)
 
-            val args = DartExecutor.DartCallback(
-                    context.assets,
-                    FlutterInjector.instance().flutterLoader().findAppBundlePath(),
-                    callbackInfo
-            )
-            IsolateHolderService.backgroundEngine?.dartExecutor?.executeDartCallback(args)
+                callbackHandle = context.getSharedPreferences(
+                        Keys.SHARED_PREFERENCES_KEY,
+                        Context.MODE_PRIVATE)
+                        .getLong(Keys.CALLBACK_DISPATCHER_HANDLE_KEY, 0)
+
+                callbackHandle?.let {
+                    callbackInfo = FlutterCallbackInformation.lookupCallbackInformation(it)
+                }
+
+                callbackInfo?.let {
+                    args = DartExecutor.DartCallback(
+                            context.assets,
+                            FlutterInjector.instance().flutterLoader().findAppBundlePath(),
+                            it
+                    )
+                }
+
+                args?.let {
+                    IsolateHolderService.backgroundEngine?.dartExecutor?.executeDartCallback(it)
+                }
+
+            }
         }
-    }
 
-    backgroundChannel =
-            MethodChannel(IsolateHolderService.backgroundEngine?.dartExecutor?.binaryMessenger,
-                    Keys.BACKGROUND_CHANNEL_ID)
-    backgroundChannel.setMethodCallHandler(this)
+        backgroundChannel =
+                MethodChannel(IsolateHolderService.backgroundEngine?.dartExecutor?.binaryMessenger,
+                              Keys.BACKGROUND_CHANNEL_ID)
+        backgroundChannel.setMethodCallHandler(this)
+
+    } catch (throwable: Throwable) {
+        throw Exception(
+                "IsolateHolderService.startLocatorService was't successfull, " +
+                        "serviceStarted: $serviceStarted, callbackHandle: $callbackHandle, " +
+                        "callbackInfo: $callbackInfo, args: $args",
+                throwable
+        )
+    }
 }
 
 fun getLocationRequest(intent: Intent): LocationRequestOptions {
