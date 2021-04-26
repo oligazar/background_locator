@@ -44,7 +44,7 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     private var notificationIconColor = 0
     private var icon = 0
     private var wakeLockTime = 60 * 60 * 1000L // 1 hour default wake lock time
-    private var locatorClient: BLLocationProvider?
+    private var locatorClient: BLLocationProvider? = null
     internal lateinit var backgroundChannel: MethodChannel
     internal lateinit var context: Context
 
