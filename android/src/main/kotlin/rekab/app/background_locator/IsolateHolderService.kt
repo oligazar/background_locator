@@ -13,6 +13,7 @@ import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import rekab.app.background_locator.logger.Logger
 import rekab.app.background_locator.provider.*
 import java.util.HashMap
 
@@ -49,16 +50,19 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     internal lateinit var context: Context
 
     override fun onBind(intent: Intent?): IBinder? {
+        Logger().d("onBind")
         return null
     }
 
     override fun onCreate() {
         super.onCreate()
+        Logger().d("onCreate")
         startLocatorService(this)
         startForeground(notificationId, getNotification())
     }
 
     private fun start() {
+        Logger().d("start")
         if (PreferencesManager.isServiceRunning(this)) {
             return
         }
@@ -150,6 +154,7 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     }
 
     private fun shutdownHolderService() {
+        Logger().d("shutdownHolderService")
         (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
             newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_TAG).apply {
                 if (isHeld) {
@@ -208,6 +213,7 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
 
     override fun onDestroy() {
         PreferencesManager.setServiceRunning(this, false)
+        Logger().d("onDestroy")
         super.onDestroy()
     }
 
@@ -220,6 +226,8 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     }
 
     override fun onLocationUpdated(location: HashMap<Any, Any>?) {
+        Logger().d("new location: $location")
+
         FlutterInjector.instance().flutterLoader().ensureInitializationComplete(context, null)
 
         //https://github.com/flutter/plugins/pull/1641
