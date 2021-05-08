@@ -1,12 +1,9 @@
 package rekab.app.background_locator.logger
 
-import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.pm.PackageManager
 import android.os.Environment
-import androidx.core.app.ActivityCompat
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
