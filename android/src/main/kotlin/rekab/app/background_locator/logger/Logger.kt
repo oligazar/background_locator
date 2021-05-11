@@ -42,8 +42,8 @@ class Logger {
     }
 
     fun d(text: String? = null) {
-        val tag = getTag()
-        appendLog("$tag $text")
+//        val tag = getTag()
+//        appendLog("$tag $text")
     }
 
     private fun getTag(): String? {
