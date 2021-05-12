@@ -288,13 +288,13 @@ class BackgroundLocatorPlugin
         activity = binding.activity
         binding.addOnNewIntentListener(this)
 
-        activity?.let { act ->
-            val check: Int = ActivityCompat.checkSelfPermission(act,
-                                                                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            if (check != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(act, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 1024)
-            }
-        }
+//        activity?.let { act ->
+//            val check: Int = ActivityCompat.checkSelfPermission(act,
+//                                                                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//            if (check != PackageManager.PERMISSION_GRANTED) {
+//                requestPermissions(act, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 1024)
+//            }
+//        }
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
