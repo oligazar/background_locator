@@ -44,6 +44,13 @@ class Logger {
     fun d(text: String? = null) {
         val tag = getTag()
         appendLog("$tag $text")
+
+//        val check: Int = ActivityCompat.checkSelfPermission(context,
+//                                                            Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//        val tag = getTag()
+//        if (check == PackageManager.PERMISSION_GRANTED) {
+//            appendLog("$tag $text")
+//        }
     }
 
     private fun getTag(): String? {

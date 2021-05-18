@@ -103,7 +103,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
 #pragma mark LocatorPlugin Methods
 - (void) sendLocationEvent: (NSDictionary<NSString*,NSNumber*>*)location {
-    if (_callbackChannel == nil) {
+    if (_callbackChannel == nil || _headlessRunner == nil) {
         return;
     }
     
