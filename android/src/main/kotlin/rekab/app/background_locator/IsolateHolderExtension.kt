@@ -9,6 +9,7 @@ import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.view.FlutterCallbackInformation
 import rekab.app.background_locator.logger.Logger
+import rekab.app.background_locator.logger.d
 import rekab.app.background_locator.provider.LocationRequestOptions
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -19,7 +20,7 @@ internal fun IsolateHolderService.startLocatorService(context: Context) {
     var callbackInfo: FlutterCallbackInformation? = null
     var args: DartExecutor.DartCallback? = null
 
-    Logger().d("startLocatorService")
+    context.d("startLocatorService")
 
     try {
         serviceStarted = AtomicBoolean(PreferencesManager.isServiceRunning(context))
@@ -52,7 +53,7 @@ internal fun IsolateHolderService.startLocatorService(context: Context) {
                 args?.let {
                     IsolateHolderService.backgroundEngine?.dartExecutor?.executeDartCallback(it)
                 }
-                Logger().d("callbackHandle: $callbackHandle, callbackInfo: $callbackInfo, args: $args")
+                context.d("callbackHandle: $callbackHandle, callbackInfo: $callbackInfo, args: $args")
             }
         }
 

@@ -14,6 +14,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import rekab.app.background_locator.logger.Logger
+import rekab.app.background_locator.logger.d
 import rekab.app.background_locator.provider.*
 import java.util.HashMap
 
@@ -47,22 +48,22 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     private var wakeLockTime = 60 * 60 * 1000L // 1 hour default wake lock time
     private var locatorClient: BLLocationProvider? = null
     internal lateinit var backgroundChannel: MethodChannel
-    internal lateinit var context: Context
+    internal var context: Context? = null
 
     override fun onBind(intent: Intent?): IBinder? {
-        Logger().d("onBind")
+        context?.d("onBind")
         return null
     }
 
     override fun onCreate() {
         super.onCreate()
-        Logger().d("onCreate")
+        context?.d("onCreate")
         startLocatorService(this)
         startForeground(notificationId, getNotification())
     }
 
     private fun start() {
-        Logger().d("start")
+        context?.d("start")
         if (PreferencesManager.isServiceRunning(this)) {
             return
         }
@@ -147,14 +148,16 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         notificationIconColor = intent.getLongExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_ICON_COLOR, 0).toInt()
         wakeLockTime = intent.getIntExtra(Keys.SETTINGS_ANDROID_WAKE_LOCK_TIME, 60) * 60 * 1000L
 
-        locatorClient = getLocationClient(context)
-        locatorClient?.requestLocationUpdates(getLocationRequest(intent))
+        context?.run {
+            locatorClient = getLocationClient(this)
+            locatorClient?.requestLocationUpdates(getLocationRequest(intent))
+        }
 
         start()
     }
 
     private fun shutdownHolderService() {
-        Logger().d("shutdownHolderService")
+        context?.d("shutdownHolderService")
         (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
             newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_TAG).apply {
                 if (isHeld) {
@@ -213,7 +216,7 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
 
     override fun onDestroy() {
         PreferencesManager.setServiceRunning(this, false)
-        Logger().d("onDestroy")
+        context?.d("onDestroy")
         super.onDestroy()
     }
 
@@ -226,22 +229,24 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     }
 
     override fun onLocationUpdated(location: HashMap<Any, Any>?) {
-        Logger().d("new location: $location")
+        context?.run {
+            context?.d("new location: $location")
 
-        FlutterInjector.instance().flutterLoader().ensureInitializationComplete(context, null)
+            FlutterInjector.instance().flutterLoader().ensureInitializationComplete(this, null)
 
-        //https://github.com/flutter/plugins/pull/1641
-        //https://github.com/flutter/flutter/issues/36059
-        //https://github.com/flutter/plugins/pull/1641/commits/4358fbba3327f1fa75bc40df503ca5341fdbb77d
-        // new version of flutter can not invoke method from background thread
-        if (location != null) {
-            val callback = BackgroundLocatorPlugin.getCallbackHandle(context, Keys.CALLBACK_HANDLE_KEY) as Long
+            //https://github.com/flutter/plugins/pull/1641
+            //https://github.com/flutter/flutter/issues/36059
+            //https://github.com/flutter/plugins/pull/1641/commits/4358fbba3327f1fa75bc40df503ca5341fdbb77d
+            // new version of flutter can not invoke method from background thread
+            if (location != null) {
+                val callback = BackgroundLocatorPlugin.getCallbackHandle(this, Keys.CALLBACK_HANDLE_KEY) as Long
 
-            val result: HashMap<Any, Any> =
-                    hashMapOf(Keys.ARG_CALLBACK to callback,
-                            Keys.ARG_LOCATION to location)
+                val result: HashMap<Any, Any> =
+                        hashMapOf(Keys.ARG_CALLBACK to callback,
+                                  Keys.ARG_LOCATION to location)
 
-            sendLocationEvent(result)
+                sendLocationEvent(result)
+            }
         }
     }
 
@@ -254,11 +259,13 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         if (backgroundEngine != null) {
             val backgroundChannel =
                     MethodChannel(backgroundEngine?.dartExecutor?.binaryMessenger, Keys.BACKGROUND_CHANNEL_ID)
-            Handler(context.mainLooper)
-                    .post {
-                        Log.d("plugin", "sendLocationEvent $result")
-                        backgroundChannel.invokeMethod(Keys.BCM_SEND_LOCATION, result)
-                    }
+            context?.let {
+                Handler(mainLooper)
+                        .post {
+                            Log.d("plugin", "sendLocationEvent $result")
+                            backgroundChannel.invokeMethod(Keys.BCM_SEND_LOCATION, result)
+                        }
+            }
         }
     }
 

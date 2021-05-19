@@ -22,6 +22,7 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
 import rekab.app.background_locator.logger.Logger
+import rekab.app.background_locator.logger.d
 
 
 class BackgroundLocatorPlugin
@@ -197,7 +198,7 @@ class BackgroundLocatorPlugin
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
-        Logger().d(call.method)
+        context?.d(call.method)
         when (call.method) {
             Keys.METHOD_PLUGIN_INITIALIZE_SERVICE -> {
                 val args: Map<Any, Any> = call.arguments()

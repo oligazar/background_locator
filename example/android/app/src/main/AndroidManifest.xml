@@ -19,6 +19,7 @@
          FlutterApplication and put your custom class here. -->
     <application
         android:label="background_locator_example"
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
         >

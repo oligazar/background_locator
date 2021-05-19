@@ -1,49 +1,80 @@
 package rekab.app.background_locator.logger
 
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
+import android.provider.MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI
 import java.io.BufferedWriter
 import java.io.File
+import java.io.FileOutputStream
 import java.io.FileWriter
 import java.io.IOException
+import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 
-class Logger {
+object Logger {
+    private var uri: Uri? = null
 
-    private fun appendLog(text: String?) {
-        val directory = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DCIM).toString()
-        val logFile = File(directory, "log.txt")
-        if (!logFile.exists()) {
-            try {
-                logFile.createNewFile()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
+    private fun appendLog(context: Context, text: String?) {
+        val resolver = context.contentResolver
+
+        val now = Date().time
+        val dayStr = SimpleDateFormat("yyMMdd", Locale.US).format(now)
+        val dateStr = SimpleDateFormat("MM/dd'T'kk:mm:ss.SSSZ", Locale.US).format(now)
+        val fileName = "logs/log_$dayStr.txt"
         try {
-            val dateStr = SimpleDateFormat("MM/dd'T'kk:mm:ss.SSSZ", Locale.US).format(Date().time)
-            //BufferedWriter for performance, true to set append to file flag
-            BufferedWriter(FileWriter(logFile, true)).apply {
-                append("$dateStr ")
-                append(text)
-                newLine()
-                close()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS)
+                }
+
+                if (uri == null) {
+                    uri = resolver.insert(MediaStore.Files.getContentUri("external"), values)
+                            ?: throw IOException("Failed to create new MediaStore record.")
+                }
+
+                resolver.openOutputStream(uri!!, "wa")?.use { outputStream ->
+                    outputStream.write("$dateStr $text \n".toByteArray(Charset.defaultCharset()))
+                } ?: throw IOException("Failed to open output stream.")
+            } else {
+                val directory = Environment.getExternalStoragePublicDirectory(
+                        Environment.DIRECTORY_DCIM).toString()
+
+                val logFile = File(directory, fileName)
+                if (!logFile.exists()) {
+                    logFile.createNewFile()
+                }
+                //BufferedWriter for performance, true to set append to file flag
+                BufferedWriter(FileWriter(logFile, true)).apply {
+                    append("$dateStr ")
+                    append(text)
+                    newLine()
+                    close()
+                }
             }
         } catch (e: IOException) {
-            // TODO Auto-generated catch block
             e.printStackTrace()
+//            uri?.let { orphanUri ->
+//                 Don't leave an orphan entry in the MediaStore
+//                resolver.delete(orphanUri, null, null)
+//            }
         }
     }
 
-    fun d(text: String? = null) {
+    fun d(context: Context, text: String? = null) {
         val tag = getTag()
-        appendLog("$tag $text")
+        appendLog(context,"$tag $text")
 
 //        val check: Int = ActivityCompat.checkSelfPermission(context,
 //                                                            Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -65,18 +96,8 @@ class Logger {
         }
         return null
     }
+}
 
-    private fun getActivity(context: Context?): Activity? {
-        if (context == null) {
-            return null
-        } else if (context is ContextWrapper) {
-            return if (context is Activity) {
-                context
-            } else {
-                getActivity((context).baseContext)
-            }
-        }
-        return null
-    }
-
+fun Context.d(text: String? = null) {
+    Logger.d(this, text)
 }
