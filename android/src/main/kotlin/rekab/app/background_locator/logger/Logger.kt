@@ -19,6 +19,7 @@ import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.log
 
 
 object Logger {
@@ -30,7 +31,7 @@ object Logger {
         val now = Date().time
         val dayStr = SimpleDateFormat("yyMMdd", Locale.US).format(now)
         val dateStr = SimpleDateFormat("MM/dd'T'kk:mm:ss.SSSZ", Locale.US).format(now)
-        val fileName = "logs/log_$dayStr.txt"
+        val fileName = "log_$dayStr.txt"
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val values = ContentValues().apply {

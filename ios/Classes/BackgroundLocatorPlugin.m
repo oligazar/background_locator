@@ -2,6 +2,8 @@
 #import "Globals.h"
 #import "Utils/Util.h"
 #import "Preferences/PreferencesManager.h"
+#import "Log.h"
+
 
 @implementation BackgroundLocatorPlugin {
     FlutterEngine *_headlessRunner;
@@ -32,6 +34,8 @@ static BackgroundLocatorPlugin *instance = nil;
 
 - (void)handleMethodCall:(FlutterMethodCall *)call
                   result:(FlutterResult)result {
+    
+    BLLog([call method]);
     MethodCallHelper *callHelper = [[MethodCallHelper alloc] init];
     [callHelper handleMethodCall:call result:result delegate:self];
 }
@@ -57,12 +61,14 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {
+//    BLLog(@"applicationDidEnterBackground");
     if ([PreferencesManager isServiceRunning]) {
         [_locationManager startMonitoringSignificantLocationChanges];
     }
 }
 
 -(void)applicationWillTerminate:(UIApplication *)application {
+//    BLLog(@"applicationWillTerminate");
     [self observeRegionForLocation:_lastLocation];
 }
 
@@ -79,6 +85,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 - (void) prepareLocationMap:(CLLocation*) location {
     _lastLocation = location;
     NSDictionary<NSString*,NSNumber*>* locationMap = [Util getLocationMap:location];
+    BLLog(@"locationMap: %@", locationMap);
     
     [self sendLocationEvent:locationMap];
 }
@@ -86,6 +93,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 #pragma mark LocationManagerDelegate Methods
 - (void)locationManager:(CLLocationManager *)manager
      didUpdateLocations:(NSArray<CLLocation *> *)locations {
+    BLLog(@"locations count: %d", [locations count]);
     if (locations.count > 0) {
         CLLocation* location = [locations objectAtIndex:0];
         [self prepareLocationMap: location];
@@ -116,7 +124,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
 - (instancetype)init:(NSObject<FlutterPluginRegistrar> *)registrar {
     self = [super init];
-    
+    BLLog(@"registrar: %@", registrar);
     _headlessRunner = [[FlutterEngine alloc] initWithName:@"LocatorIsolate" project:nil allowHeadlessExecution:YES];
     _registrar = registrar;
     [self prepareLocationManager];
@@ -143,6 +151,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 #pragma mark MethodCallHelperDelegate
 
 - (void)startLocatorService:(int64_t)handle {
+    
     [PreferencesManager setCallbackDispatcherHandle:handle];
     FlutterCallbackInformation *info = [FlutterCallbackCache lookupCallbackInformation:handle];
     NSAssert(info != nil, @"failed to find callback");
@@ -161,6 +170,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
         registerPlugins(_headlessRunner);
     });
     [_registrar addMethodCallDelegate:self channel:_callbackChannel];
+    BLLog(@"info: %@, _callbackChannel: %@", info, _callbackChannel);
 }
 
 - (void)registerLocator:(int64_t)callback
@@ -168,8 +178,9 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
   initialDataDictionary:(NSDictionary*)initialDataDictionary
         disposeCallback:(int64_t)disposeCallback
                settings: (NSDictionary*)settings {
+    BLLog(@"settings: %@", settings);
+    
     [self->_locationManager requestAlwaysAuthorization];
-        
     long accuracyKey = [[settings objectForKey:kSettingsAccuracy] longValue];
     CLLocationAccuracy accuracy = [Util getAccuracy:accuracyKey];
     double distanceFilter= [[settings objectForKey:kSettingsDistanceFilter] doubleValue];
@@ -210,6 +221,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 }
 
 - (BOOL)isServiceRunning{
+    BLLog(@"isServiceRunning: %d", [PreferencesManager isServiceRunning]);
     return [PreferencesManager isServiceRunning];
 }
 
