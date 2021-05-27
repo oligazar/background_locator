@@ -8,12 +8,12 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import rekab.app.background_locator.logger.Logger
 import rekab.app.background_locator.logger.d
 import rekab.app.background_locator.provider.*
 import java.util.HashMap
@@ -86,7 +86,7 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Notification channel is available in Android O and up
             val channel = NotificationChannel(Keys.CHANNEL_ID, notificationChannelName,
-                    NotificationManager.IMPORTANCE_LOW)
+                                              NotificationManager.IMPORTANCE_LOW)
 
             (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                     .createNotificationChannel(channel)
@@ -96,13 +96,14 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         intent.action = Keys.NOTIFICATION_ACTION
 
         val pendingIntent: PendingIntent = PendingIntent.getActivity(this,
-                1, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+                                                                     1, intent,
+                                                                     PendingIntent.FLAG_UPDATE_CURRENT)
 
         return NotificationCompat.Builder(this, Keys.CHANNEL_ID)
                 .setContentTitle(notificationTitle)
                 .setContentText(notificationMsg)
                 .setStyle(NotificationCompat.BigTextStyle()
-                        .bigText(notificationBigMsg))
+                                  .bigText(notificationBigMsg))
                 .setSmallIcon(icon)
                 .setColor(notificationIconColor)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -135,7 +136,8 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     }
 
     private fun startHolderService(intent: Intent) {
-        notificationChannelName = intent.getStringExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_CHANNEL_NAME).toString()
+        notificationChannelName = intent.getStringExtra(
+                Keys.SETTINGS_ANDROID_NOTIFICATION_CHANNEL_NAME).toString()
         notificationTitle = intent.getStringExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_TITLE).toString()
         notificationMsg = intent.getStringExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_MSG).toString()
         notificationBigMsg = intent.getStringExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_BIG_MSG).toString()
@@ -145,7 +147,8 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
             iconName = iconNameDefault
         }
         icon = resources.getIdentifier(iconName, "mipmap", packageName)
-        notificationIconColor = intent.getLongExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_ICON_COLOR, 0).toInt()
+        notificationIconColor = intent.getLongExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_ICON_COLOR,
+                                                    0).toInt()
         wakeLockTime = intent.getIntExtra(Keys.SETTINGS_ANDROID_WAKE_LOCK_TIME, 60) * 60 * 1000L
 
         context?.run {
@@ -186,8 +189,15 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         }
 
         val notification = getNotification()
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(notificationId, notification)
+
+        if (canUpdateNotification(notification)) {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(notificationId, notification)
+        }
+    }
+
+    private fun canUpdateNotification(notification: Notification): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || notification.smallIcon != null
     }
 
     private fun getMainActivityClass(context: Context): Class<*>? {
@@ -239,7 +249,8 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
             //https://github.com/flutter/plugins/pull/1641/commits/4358fbba3327f1fa75bc40df503ca5341fdbb77d
             // new version of flutter can not invoke method from background thread
             if (location != null) {
-                val callback = BackgroundLocatorPlugin.getCallbackHandle(this, Keys.CALLBACK_HANDLE_KEY) as Long
+                val callback = BackgroundLocatorPlugin.getCallbackHandle(this,
+                                                                         Keys.CALLBACK_HANDLE_KEY) as Long
 
                 val result: HashMap<Any, Any> =
                         hashMapOf(Keys.ARG_CALLBACK to callback,
@@ -258,7 +269,8 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
 
         if (backgroundEngine != null) {
             val backgroundChannel =
-                    MethodChannel(backgroundEngine?.dartExecutor?.binaryMessenger, Keys.BACKGROUND_CHANNEL_ID)
+                    MethodChannel(backgroundEngine?.dartExecutor?.binaryMessenger,
+                                  Keys.BACKGROUND_CHANNEL_ID)
             context?.let {
                 Handler(mainLooper)
                         .post {
